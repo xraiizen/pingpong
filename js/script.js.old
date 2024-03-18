@@ -10,16 +10,17 @@ socket.on('role', (role) => {
     setupCanvas();
 });
 
-// // Mettre à jour la position de la balle en fonction des données reçues
+// Mettre à jour la position de la balle en fonction des données reçues
 socket.on('updateBallPosition', (data) => {
     ball.x = data.x;
     ball.dx = data.dx;
     ball.dy = data.dy;
     ball.velocity = data.velocity;
-    ball.visible = data.visible;
+    ball.visible = data.visible; // Utilisez la visibilité reçue du serveur
 
+    // La condition suivante peut interférer avec la visibilité, à vérifier également :
     if (ball.visible && ball.y === canvas.height / 2) {
-        ball.y = -ball.radius; // Commencer juste au-dessus du haut de l'écran
+        ball.y = -ball.radius;
     }
 });
 
@@ -27,9 +28,26 @@ socket.on('updateBallPosition', (data) => {
 socket.on('updateScore', (updatedScore) => {
     score.host = updatedScore.host;
     score.client = updatedScore.client;
+    
     drawScores();
 });
 
+function sendDataBall(isVisible) {
+    socket.emit('updateBallPosition', {
+        x: ball.x,
+        dx: ball.dx,
+        dy: -ball.dy,
+        velocity: ball.velocity,
+        visible: typeof isVisible === 'undefined' ? true : isVisible
+    });
+}
+function sendDataScore() {
+    socket.emit('updateScore', {
+        host: score.host,
+        client: score.client
+    });
+    ball.visible = true;
+}
 let decalageY = 15;
 let ball = {
     radius: 10,
@@ -51,7 +69,7 @@ let paddle = {
 let goal = {
     x: 0,
     y: 0,
-    width: 75,
+    width: 400,
     height: 10
 };
 let score = {
@@ -62,7 +80,10 @@ let userRole = '';
 
 
 function drawBall() {
-    if (!ball.visible) return;
+    if (!ball.visible) {
+        console.log("Tentative de dessin de la balle alors qu'elle devrait être invisible.");
+        return;
+    }
     ball.x = ball.x || canvas.width / 2 - (ball.radius / 2);
     ball.y = ball.y || canvas.height / 2 - (ball.radius / 2);
     ctx.beginPath();
@@ -128,7 +149,18 @@ function animateSetup() {
     collisionBords();
     requestAnimationFrame(animateSetup);
 }
-
+// Cette fonction doit être appelée quand un but est marqué.
+function handleGoal() {
+    if (userRole === 'hôte') {
+        score.client++;
+    } else if (userRole === 'client') {
+        score.host++;
+    }
+    resetBallPosition(); // Réinitialiser la position de la balle
+    ball.visible = false; // Rendre la balle invisible sur l'écran du joueur qui a marqué
+    sendDataScore(); // Envoyer le score mis à jour
+    sendDataBall(false); // Envoyer la position de la balle avec 'visible' à false
+}
 function resetBallPosition() {
     ball.x = canvas.width / 2 - (ball.radius / 2);
     ball.y = canvas.height / 2 - (ball.radius / 2);
@@ -143,48 +175,16 @@ function UpdateBallToOtherScreen() {
     ball.dx = 0; // Réinitialiser le déplacement horizontal
     ball.dy = 0; // Réinitialiser le déplacement vertical
     ball.velocity = 1; // Réinitialiser la vitesse de la balle
+    ball.visible = false; // Rendre la balle visible
 }
 
-// function collisionRaquette() {
-//     // Calculer les côtés de la raquette
-//     let paddleTop = paddle.y;
-//     let paddleBottom = paddle.y + paddle.height;
-//     let paddleLeft = paddle.x;
-//     let paddleRight = paddle.x + paddle.width;
-
-//     // Calculer le point le plus proche sur la raquette à la balle
-//     let closestPointX = Math.max(paddleLeft, Math.min(ball.x, paddleRight));
-//     let closestPointY = Math.max(paddleTop, Math.min(ball.y, paddleBottom));
-
-//     // Calculer la distance entre le point le plus proche sur la raquette et le centre de la balle
-//     let distanceX = ball.x - closestPointX;
-//     let distanceY = ball.y - closestPointY;
-
-//     // Calculer la distance en utilisant le théorème de Pythagore
-//     let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-//     // Vérifier si la distance est inférieure au rayon de la balle (collision détectée)
-//     if (distance <= ball.radius) {
-//         // Inverser la direction verticale de la balle
-
-//         ball.dy = ball.velocity * ((ball.y - (paddle.y + paddle.width / 2)) / paddle.width);
-//         ball.dx = ball.velocity * ((ball.x - (paddle.x + paddle.width / 2)) / paddle.width);
-
-
-
-//         console.log("Collision détectée");
-//         console.log("ball.dx,", ball.dx, "ball.dy", ball.dy);
-//     }
-//     // Mettre à jour la position de la balle
-//     ball.x += ball.dx;
-//     ball.y += ball.dy;
-// }
 function collisionRaquette() {
     // Vérifier si la balle est au niveau de la raquette
     if (ball.y + ball.radius >= paddle.y && ball.y - ball.radius <= paddle.y + paddle.height) {
         if (ball.x >= paddle.x && ball.x <= paddle.x + paddle.width) {
             // Inverser la direction verticale de la balle
             ball.dy = -ball.dy;
+            ball.dx = 3*ball.velocity * ((ball.x - (paddle.x + paddle.width / 2)) / paddle.width);
 
             // Ajuster le dy en fonction de l'endroit où la balle touche la raquette horizontalement
             let touchPointX = (ball.y - (paddle.y + paddle.width / 2)) / (paddle.width / 2);
@@ -211,16 +211,9 @@ function collisionBords() {
     }
 
     //  Rebond dans le goals
-
     if (ball.x + ball.radius >= goal.x && ball.x - ball.radius <= goal.x + goal.width && ball.y + ball.radius >= canvas.height - goal.height) {
         console.log("rebond dans le but");
-        if (userRole === 'hôte') {
-            score.client++;
-        } else if (userRole === 'client') {
-            score.host++;
-        }
-        resetBallPosition();
-        sendData();
+        handleGoal();
     }
     // Rebond sur le bas du canvas
     if (ball.y + ball.radius >= canvas.height) {
@@ -232,8 +225,7 @@ function collisionBords() {
     // Gérer la sortie par le haut du canvas
     if (ball.y - ball.radius < 5) {
         console.log("ball.y - ball.radius", ball.y - ball.radius)
-        ball.visible = false;
-        sendData();
+        sendDataBall();
         UpdateBallToOtherScreen();
     }
 
@@ -242,20 +234,6 @@ function collisionBords() {
         ball.x += ball.dx;
         ball.y += ball.dy;
     }
-}
-
-function sendData() {
-    socket.emit('updateBallPosition', {
-        x: ball.x,
-        dx: ball.dx,
-        dy: -ball.dy,
-        velocity: ball.velocity,
-        visible: true
-    });
-    socket.emit('updateScore', {
-        host: score.host,
-        client: score.client
-    });
 }
 
 document.addEventListener("mousemove", mouseMoveHandler, false);

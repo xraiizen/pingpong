@@ -1,3 +1,4 @@
+<!-- INDEX.html -->
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -14,7 +15,7 @@
       padding: 0;
       overflow: hidden;
       box-sizing: border-box;
-      cursor: none;
+      
     }
 
     canvas {
@@ -26,8 +27,23 @@
 </head>
 
 <body>
-  <canvas id="ballCanvas"></canvas>
-  <script type="module" src="/js/script.js"></script>
+  <div id="menu">
+    <button id="creerSalon">Créer un salon</button>
+    <input type="text" id="idSalon" placeholder="ID du salon" />
+    <button id="rejoindreSalon">Rejoindre un salon</button>
+    <p id="affichageIdSalon"></p>
+    <div id="listeSalons"></div>
+  </div>
+  
+  <canvas id="ballCanvas" style="display: none;cursor: none;"></canvas>
+  <!-- <script type="module" src="/js/script.js"></script> -->
+  <script src="js/canvas.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/client.js"></script>
+  <script src="js/interface.js"></script>
+  <script src="js/events.js"></script>
+  
+
 </body>
 
 </html>
