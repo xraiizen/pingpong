@@ -5,45 +5,43 @@
 <head>
   <meta charset="UTF-8">
   <title>Socket.IO Ball Animation</title>
+  <link rel="stylesheet" href="css/style.css">
   <script src="/node_modules/socket.io/client-dist/socket.io.js"></script>
   <style>
-    body,
-    html {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      box-sizing: border-box;
-      
-    }
-
-    canvas {
-      position: absolute;
-      top: -15px;
-      display: block;
-    }
+   
   </style>
 </head>
 
 <body>
-  <div id="menu">
-    <button id="creerSalon">Créer un salon</button>
-    <input type="text" id="idSalon" placeholder="ID du salon" />
-    <button id="rejoindreSalon">Rejoindre un salon</button>
+  <div class="containersalonCreer">
+    <button id="creerSalon" >Créer un salon</button>
     <p id="affichageIdSalon"></p>
     <div id="listeSalons"></div>
   </div>
-  
+  <div id="menu">
+    <form class="container" action="">
+      <div class="input-container">
+        <div class="input-content">
+          <div class="input-dist">
+            <div class="input-type">
+              <input class="input-is"required="" type="text" id="idSalon" placeholder="ID du salon" />
+             
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btnRejoindre" id="rejoindreSalon">Rejoindre un salon</button>
+    </form>
+    
+
+  </div>
   <canvas id="ballCanvas" style="display: none;cursor: none;"></canvas>
-  <!-- <script type="module" src="/js/script.js"></script> -->
+
   <script src="js/canvas.js"></script>
   <script src="js/game.js"></script>
   <script src="js/client.js"></script>
   <script src="js/interface.js"></script>
   <script src="js/events.js"></script>
-  
 
 </body>
-
 </html>

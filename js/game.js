@@ -125,7 +125,3 @@ function collisionBords() {
         ball.y += ball.dy;
     }
 }
-
-// Initialisez le jeu
-setupCanvas();
-animateSetup();

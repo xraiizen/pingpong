@@ -1,55 +1,47 @@
 // Interface.js
-document.getElementById('creerSalon').addEventListener('click', () => {
-    // Vous pouvez étendre cette logique pour inclure des options de salon, si nécessaire.
-    socket.emit('creerSalon', { /* Options du salon */ });
-});
-document.getElementById('rejoindreSalon').addEventListener('click', () => {
-    const idSalon = document.getElementById('idSalon').value;
-    socket.emit('rejoindreSalon', idSalon);
+
+document.getElementById('creerSalon').addEventListener('click', function() {
+    const options = { nomDuSalon: "Nom dynamique ou une valeur de champ de saisie" }; // Exemple: récupérer la valeur d'un champ de saisie si nécessaire
+    socket.emit('creerSalon', options);
 });
 
-
-socket.on('salonCree', (idSalon) => {
-    document.getElementById('affichageIdSalon').textContent = `ID du Salon : ${idSalon}`;
+document.getElementById('rejoindreSalon').addEventListener('click', function() {
+    const idSalon = document.getElementById('idSalon').value; // Supposons que tu as un champ de saisie pour l'ID du salon
+    if(idSalon) {
+        socket.emit('rejoindreSalon', idSalon);
+    } else {
+        alert("Veuillez entrer un ID de salon valide.");
+    }
 });
-socket.on('salonRejoint', (idSalon) => {
-    console.log(`Rejoint le salon avec l'ID : ${idSalon}`);
-    // Vous pouvez ajouter une logique supplémentaire ici pour afficher une interface de salon ou autre feedback.
-});
+socket.on('listeSalons', function(salons) {
+    const listeSalonsDiv = document.getElementById('listeSalons');
+    listeSalonsDiv.innerHTML = ''; // Vider la liste actuelle
 
-
-socket.on('listeSalons', (salons) => {
-    const listeSalonsEl = document.getElementById('listeSalons'); // Assurez-vous que cet élément existe dans votre HTML
-    listeSalonsEl.innerHTML = ''; // Réinitialiser la liste des salons
-    
-    salons.forEach(idSalon => {
-        const salonEl = document.createElement('li');
-        salonEl.textContent = `Salon: ${idSalon}`;
-        salonEl.addEventListener('click', () => {
-            socket.emit('rejoindreSalon', idSalon);
+    salons.forEach(function(salonId) {
+        const salonElem = document.createElement('div');
+        salonElem.classList.add("listeSalonsChild");
+        salonElem.textContent = `Salon ID: ${salonId}`;
+        salonElem.addEventListener('click', function() {
+            document.getElementById('idSalon').value = salonId;
         });
-        listeSalonsEl.appendChild(salonEl);
+        listeSalonsDiv.appendChild(salonElem);
     });
 });
-
-
-document.addEventListener('DOMContentLoaded', (event) => {
-    // Initialisation du socket client et autres initialisations
-    initSocketListeners();
-});
-
-function initSocketListeners() {
-    socket.on('listeSalons', (salons) => {
-    const listeSalonsEl = document.getElementById('listeSalons'); // Assurez-vous que cet élément existe dans votre HTML
-    listeSalonsEl.innerHTML = ''; // Réinitialiser la liste des salons
-    
-    salons.forEach(idSalon => {
-        const salonEl = document.createElement('li');
-        salonEl.textContent = `Salon: ${idSalon}`;
-        salonEl.addEventListener('click', () => {
-            socket.emit('rejoindreSalon', idSalon);
-        });
-        listeSalonsEl.appendChild(salonEl);
-    });
-});
+// Lorsque le salon est créé ou rejoint
+function afficherJeu() {
+    document.getElementById('menu').style.display = 'none'; // Masquer le menu
+    document.getElementById('ballCanvas').style.display = 'block'; // Afficher le canvas du jeu
+    setupCanvas();
 }
+
+// Lorsque l'ID du salon est reçu après la création ou la jonction
+socket.on('salonCree', function(idSalon) {
+ document.getElementById('affichageIdSalon').textContent = `ID du salon: ${idSalon}`;
+    // afficherJeu();
+});
+
+socket.on('salonRejoint', function(idSalon) {
+    document.getElementById('affichageIdSalon').textContent = `Rejoint le salon ID: ${idSalon}`;
+     afficherJeu();
+});
+

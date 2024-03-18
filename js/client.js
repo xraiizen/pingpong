@@ -2,10 +2,10 @@
 const socket = io("http://127.0.0.1:3000/");
 let userRole = '';
 
+// GAME
 socket.on('role', (role) => {
     userRole = role;
     ball.visible = role === 'hôte';
-    setupCanvas();
 });
 socket.emit('demanderListeSalons');
 
