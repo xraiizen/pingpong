@@ -9,6 +9,7 @@ document.getElementById('rejoindreSalon').addEventListener('click', function() {
     const idSalon = document.getElementById('idSalon').value; // Supposons que tu as un champ de saisie pour l'ID du salon
     if(idSalon) {
         socket.emit('rejoindreSalon', idSalon);
+        this.disabled = true;
     } else {
         alert("Veuillez entrer un ID de salon valide.");
     }
@@ -29,9 +30,9 @@ socket.on('listeSalons', function(salons) {
 });
 // Lorsque le salon est créé ou rejoint
 function afficherJeu() {
+    setupCanvas();
     document.getElementById('menu').style.display = 'none'; // Masquer le menu
     document.getElementById('ballCanvas').style.display = 'block'; // Afficher le canvas du jeu
-    setupCanvas();
 }
 
 // Lorsque l'ID du salon est reçu après la création ou la jonction

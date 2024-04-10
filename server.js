@@ -65,6 +65,7 @@ io.on('connection', (socket) => {
   socket.on('rejoindreSalon', (idSalon) => {
     // Vérifier si le salon existe
     if (!salons[idSalon]) {
+      console.log('Salon introuvable', idSalon);
       socket.emit('erreur', 'Salon introuvable');
       return;
     }
@@ -76,11 +77,13 @@ io.on('connection', (socket) => {
     socket.join(idSalon);
     socket.salonId = idSalon;
 
+    
+    // Envoyer la mise à jour de la liste des clients du salon
+    
     // Notifier le client qu'il a rejoint le salon
     socket.emit('salonRejoint', idSalon);
-
-    // Envoyer la mise à jour de la liste des clients du salon
     io.to(idSalon).emit('miseAJourClients', salons[idSalon].clients);
+    console.log('Clients du salon', salons[idSalon].clients);
   });
 
 
