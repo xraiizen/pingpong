@@ -1,5 +1,5 @@
 // Client.js
-const socket = io("http://127.0.0.1:3000/");
+const socket = io("localhost:3000/");
 let userRole = '';
 
 // GAME

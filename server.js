@@ -63,17 +63,36 @@ io.on('connection', (socket) => {
   
 
   socket.on('rejoindreSalon', (idSalon) => {
+    if (typeof idSalon !== 'string' || idSalon.trim() === '') {
+      socket.emit('erreur', 'ID de salon invalide');
+      return;
+    }
     // Vérifier si le salon existe
     if (!salons[idSalon]) {
-      console.log('Salon introuvable', idSalon);
       socket.emit('erreur', 'Salon introuvable');
       return;
     }
+    const MAX_CLIENTS = 2; // Nombre maximum de clients par salon
+    const salon = salons[idSalon];
 
+    if (salon && salon.clients.length >= MAX_CLIENTS) {
+      socket.emit('erreur', 'Ce salon est plein.');
+      // notifier les joueurs dans le salon qu'une tentative de rejoindre a été bloquée car le salon est plein
+      salon.clients.forEach(clientId => {
+        io.to(clientId).emit('notification', 'Un joueur a tenté de rejoindre le salon mais il est déjà plein.');
+      });
+      return;
+    }
+    if (!salons[idSalon].host) {
+      salons[idSalon].host = socket.id;
+      socket.emit('role', 'hôte');
+    } else {
+      socket.emit('role', 'client');
+    }
     // Ajouter le client au salon
     // Assure-toi que le salon existe et que le client peut rejoindre, etc.
-    salons[idSalon].clients.push(socket.id);
-    salons[idSalon].score.clients[socket.id] = 0; // Initialise le score du client
+    salon.clients.push(socket.id);
+    salon.score.clients[socket.id] = 0; // Initialise le score du client
     socket.join(idSalon);
     socket.salonId = idSalon;
 
@@ -82,38 +101,34 @@ io.on('connection', (socket) => {
     
     // Notifier le client qu'il a rejoint le salon
     socket.emit('salonRejoint', idSalon);
-    io.to(idSalon).emit('miseAJourClients', salons[idSalon].clients);
-    console.log('Clients du salon', salons[idSalon].clients);
+    io.to(idSalon).emit('miseAJourClients', salon.clients);
+    console.log('Clients du salon', salon.clients);
   });
 
 
   socket.on('disconnect', () => {
-    console.log('Un utilisateur est déconnecté');
-    if (socket.salonId) {
-      // Si l'utilisateur était dans un salon, vérifier s'il était l'hôte
-      const salon = salons[socket.salonId];
-      if (salon && socket.id === salon.host) {
-        // Si l'utilisateur était l'hôte, désigner un nouveau hôte parmi les clients ou fermer le salon
+    const salon = salons[socket.salonId];
+    if (salon) {
+      if (socket.id === salon.host) {
+        // L'hôte a quitté, désigner un nouveau hôte ou fermer le salon
         if (salon.clients.length > 0) {
-          salon.host = salon.clients.shift(); // Désigner le nouveau hôte
+          salon.host = salon.clients[0]; // Simple exemple de désignation du nouveau hôte
           io.to(salon.host).emit('role', 'hôte');
         } else {
-          // Si aucun client n'est disponible pour devenir hôte, supprimer le salon
+          // Fermer le salon si aucun client n'est présent
           delete salons[socket.salonId];
         }
-      } else if (salon) {
-        // Supprimer le client de la liste des clients du salon
+      } else {
+        // Un client a quitté, le retirer de la liste des clients
         salon.clients = salon.clients.filter(clientId => clientId !== socket.id);
       }
-      // Mettre à jour la liste des salons pour tous les utilisateurs
+      // Mise à jour de la liste des salons pour tous les clients
       io.emit('listeSalons', Object.keys(salons));
     }
   });
 
 
   socket.on('updateBallPosition', (position) => {
-    // Transmettez cette mise à jour à tous les clients sauf à l'émetteur
-    console.log('Envoi de la mise à jour de la position de la balle', position);
     // Assure-toi que l'ID du salon est stocké dans l'objet socket lors de la connexion ou de la création d'un salon
     const idSalon = socket.salonId;
     if (!idSalon) {
@@ -131,7 +146,8 @@ io.on('connection', (socket) => {
       score
     } = data; // Supposons que 'data' contienne l'ID du salon et les scores à mettre à jour
     const salon = salons[idSalon];
-    if (!salon) {
+    if (!salon || typeof score.host !== 'number' || typeof score.client !== 'number') {
+      socket.emit('erreur', 'Données de score invalides');
       return; // Le salon n'existe pas
     }
     // Met à jour les scores. Exemple :
@@ -163,6 +179,6 @@ function verifierEtDemarrerPartie(idSalon) {
 }
 
 const port = process.env.PORT || 3000;
-server.listen(port, () => {
+server.listen(port, '0.0.0.0',() => {
   console.log(`Serveur écoutant sur le port ${port}`);
 });
